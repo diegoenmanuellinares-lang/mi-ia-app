@@ -1,47 +1,32 @@
 import streamlit as st
 import google.generativeai as genai
 
-# CONFIGURACIÓN DE SEGURIDAD
+# Título de la App
+st.set_page_config(page_title="Tutor de Francés")
+st.title("🇫🇷 Tutor de Francés")
+
+# Configurar la API Key desde los Secrets
 if "GOOGLE_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 else:
-    st.error("Falta la configuración de la API Key en los Secretos de Streamlit.")
+    st.error("Por favor, agrega la GOOGLE_API_KEY en los Secrets de Streamlit.")
 
-# INSTRUCCIONES PARA EL TUTOR (Enfoque académico y fonético)
-instruction = (
-    "Eres 'L'Atelier Français AI', un tutor de francés para universitarios. "
-    "REGLA 1: Siempre incluye la transcripción fonética IPA entre corchetes [ ] para cada palabra en francés. "
-    "REGLA 2: Usa un tono académico y profesional. "
-    "REGLA 3: Proporciona ejemplos y citas en formato APA 7ma edición si es necesario."
-)
+# Entrada de texto
+prompt = st.text_input("Escribe tu pregunta (ej: ¿Cómo se dice hola en francés?)")
 
-# INTERFAZ
-st.set_page_config(page_title="L'Atelier Français AI", page_icon="🇫🇷")
-st.title("🇫🇷 L'Atelier Français AI")
-st.markdown("### Tu asistente académico de francés con fonética IPA")
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-if prompt := st.chat_input("Escribe tu pregunta sobre francés aquí..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    # Configuración del modelo (Ajustado para evitar el error 404)
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash", 
-        system_instruction=instruction
-    )
-    
-    with st.chat_message("assistant"):
+if st.button("Consultar"):
+    if prompt:
         try:
-            response = model.generate_content(prompt)
-            st.markdown(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
+            # Usamos el modelo más estable
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            
+            # Le pedimos específicamente la fonética aquí en el mensaje
+            full_query = f"{prompt}. Por favor, incluye la fonética IPA entre corchetes [ ]."
+            
+            response = model.generate_content(full_query)
+            st.write("---")
+            st.write(response.text)
         except Exception as e:
-            st.error(f"Error de conexión: {e}")
+            st.error(f"Error técnico: {e}")
+    else:
+        st.warning("Por favor, escribe algo primero.")
