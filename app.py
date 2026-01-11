@@ -1,60 +1,49 @@
 import streamlit as st
 import google.generativeai as genai
-import os
 
-class LanguageTutor:
-    def __init__(self):
-        # Configuración desde Secrets de Streamlit
-        self.api_key = st.secrets.get("GOOGLE_API_KEY")
-        if not self.api_key:
-            st.error("Missing API Key.")
-            st.stop()
-        genai.configure(api_key=self.api_key)
-        
-        # Parámetros avanzados del modelo
-        self.generation_config = {
-            "temperature": 0.7,
-            "top_p": 0.95,
-            "top_k": 40,
-            "max_output_tokens": 1024,
-        }
-        
-        # Modelo estable para evitar error 404
-        self.model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash-latest",
-            generation_config=self.generation_config
-        )
+# Configuración profesional de la página
+st.set_page_config(page_title="L'Atelier Français AI", layout="wide")
 
-    def get_response(self, user_prompt):
-        # Instrucción de sistema inyectada directamente
+# Conexión segura con la API
+if "GOOGLE_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+else:
+    st.error("Error: Configura tu API Key en los Secrets de Streamlit.")
+    st.stop()
+
+# Título con estilo académico
+st.title("🇫🇷 L'Atelier Français AI: Tutor de Idiomas Avanzado")
+
+# Inicialización de historial de chat
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Mostrar historial
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Entrada de usuario
+if prompt := st.chat_input("Escribe tu duda gramatical o de pronunciación..."):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    try:
+        # EL CAMBIO CLAVE: Nombre del modelo estable
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        
+        # Contexto de sistema integrado
         system_context = (
-            "Eres un experto en lingüística y tutor de francés. "
-            "Para cada respuesta: 1. Provee la traducción. "
-            "2. Incluye la transcripción IPA entre corchetes [ ]. "
-            "3. Explica la regla gramatical brevemente."
+            "Eres un tutor de francés experto. Para cada respuesta: "
+            "1. Provee la traducción. 2. Incluye siempre la fonética IPA entre corchetes [ ]. "
+            "3. Explica brevemente la regla gramatical involucrada."
         )
-        try:
-            full_query = f"{system_context}\n\nStudent asks: {user_prompt}"
-            response = self.model.generate_content(full_query)
-            return response.text
-        except Exception as e:
-            return f"Runtime Error: {str(e)}"
-
-# --- UI LAYER ---
-st.set_page_config(page_title="Advanced Language AI", layout="wide")
-tutor = LanguageTutor()
-
-st.title("👨‍🏫 Atelier Français: Advanced Mode")
-
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-
-# Chat input profesional
-if prompt := st.chat_input("Analyze a French sentence..."):
-    st.session_state.chat_history.append({"role": "user", "content": prompt})
-    response = tutor.get_response(prompt)
-    st.session_state.chat_history.append({"role": "assistant", "content": response})
-
-for chat in st.session_state.chat_history:
-    with st.chat_message(chat["role"]):
-        st.markdown(chat["content"])
+        
+        with st.chat_message("assistant"):
+            response = model.generate_content(f"{system_context}\n\nPregunta: {prompt}")
+            st.markdown(response.text)
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
+            
+    except Exception as e:
+        st.error(f"Error del sistema: {e}")
