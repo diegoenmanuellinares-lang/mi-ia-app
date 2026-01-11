@@ -1,49 +1,48 @@
 import streamlit as st
 import google.generativeai as genai
 
-# Configuración profesional de la página
-st.set_page_config(page_title="L'Atelier Français AI", layout="wide")
+# Configuración avanzada de la interfaz
+st.set_page_config(page_title="L'Atelier Français AI", page_icon="🇫🇷", layout="wide")
 
-# Conexión segura con la API
+# Conexión con la API Key desde tus Secrets
 if "GOOGLE_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 else:
     st.error("Error: Configura tu API Key en los Secrets de Streamlit.")
     st.stop()
 
-# Título con estilo académico
-st.title("🇫🇷 L'Atelier Français AI: Tutor de Idiomas Avanzado")
+# Título Académico
+st.title("🇫🇷 L'Atelier Français AI")
+st.subheader("Tu tutor académico de francés con fonética IPA")
 
-# Inicialización de historial de chat
+# Lógica del Chat
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Mostrar historial
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Entrada de usuario
-if prompt := st.chat_input("Escribe tu duda gramatical o de pronunciación..."):
+if prompt := st.chat_input("¿En qué puedo ayudarte con tu francés hoy?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     try:
-        # EL CAMBIO CLAVE: Nombre del modelo estable
+        # Nombre del modelo estable para evitar el error 404
         model = genai.GenerativeModel('gemini-1.5-flash-latest')
         
-        # Contexto de sistema integrado
-        system_context = (
-            "Eres un tutor de francés experto. Para cada respuesta: "
-            "1. Provee la traducción. 2. Incluye siempre la fonética IPA entre corchetes [ ]. "
-            "3. Explica brevemente la regla gramatical involucrada."
+        # Instrucción del sistema para rigor académico
+        system_instruction = (
+            "Eres un tutor de francés para estudiantes universitarios. "
+            "Reglas: 1. Siempre provee la transcripción IPA [ ]. "
+            "2. Usa un tono profesional. 3. Cita reglas gramaticales."
         )
         
         with st.chat_message("assistant"):
-            response = model.generate_content(f"{system_context}\n\nPregunta: {prompt}")
+            response = model.generate_content(f"{system_instruction}\n\nPregunta: {prompt}")
             st.markdown(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
             
     except Exception as e:
-        st.error(f"Error del sistema: {e}")
+        st.error(f"Hubo un problema técnico: {e}")
