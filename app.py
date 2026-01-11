@@ -1,9 +1,11 @@
 import streamlit as st
-from google import genai
+import google.generativeai as genai
 
-# CONFIGURACIÓN DE SEGURIDAD
-API_KEY = "AIzaSyBPC41Jg8SgFlELM9bAS0wY-a8A0ewyX0I"
-client = genai.Client(api_key=API_KEY)
+# CONFIGURACIÓN DE SEGURIDAD (Usa los Secrets de Streamlit)
+if "GOOGLE_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+else:
+    st.error("Falta la configuración de la API Key en los Secretos de Streamlit.")
 
 # INSTRUCCIONES ACADÉMICAS (Fonética IPA integrada)
 instruction = (
@@ -17,27 +19,29 @@ st.set_page_config(page_title="L'Atelier Français AI", page_icon="🇫🇷")
 st.title("🇫🇷 L'Atelier Français AI")
 st.subheader("Tu tutor de francés con fonética IPA")
 
+# Inicializar historial
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Mostrar historial
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("¿Qué quieres aprender hoy?"):
+# Entrada de texto
+if prompt := st.chat_input("Escribe tu duda en francés o español..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # Generar respuesta con el modelo Gemini
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        system_instruction=instruction
+    )
+    
     with st.chat_message("assistant"):
-        try:
-            # Llamada con la nueva librería para evitar el error 404
-            response = client.models.generate_content(
-                model="gemini-1.5-flash", 
-                contents=prompt,
-                config={'system_instruction': instruction}
-            )
-            st.markdown(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
-        except Exception as e:
-            st.error(f"Error de conexión: {e}")
+        response = model.generate_content(prompt)
+        st.markdown(response.text)
+        
+    st.session_state.messages.append({"role": "assistant", "content": response.text})
