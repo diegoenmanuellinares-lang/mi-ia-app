@@ -1,32 +1,35 @@
 import streamlit as st
 import google.generativeai as genai
 
-# Título de la App
-st.set_page_config(page_title="Tutor de Francés")
+# Configuración básica de la página
+st.set_page_config(page_title="Tutor de Francés AI", page_icon="🇫🇷")
 st.title("🇫🇷 Tutor de Francés")
+st.write("Escribe tu duda y te ayudaré con la traducción y fonética IPA.")
 
-# Configurar la API Key desde los Secrets
+# Conexión con la API Key (usando tus Secrets de Streamlit)
 if "GOOGLE_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 else:
-    st.error("Por favor, agrega la GOOGLE_API_KEY en los Secrets de Streamlit.")
+    st.error("Error: No se encontró la API Key en los Secrets.")
 
-# Entrada de texto
-prompt = st.text_input("Escribe tu pregunta (ej: ¿Cómo se dice hola en francés?)")
+# Entrada de usuario
+user_input = st.text_input("¿Qué quieres aprender hoy?", placeholder="Ej: ¿Cómo se dice gracias?")
 
 if st.button("Consultar"):
-    if prompt:
+    if user_input:
         try:
-            # Usamos el modelo más estable
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            # EL CAMBIO CLAVE: Nombre del modelo actualizado
+            model = genai.GenerativeModel('gemini-1.5-flash-latest')
             
-            # Le pedimos específicamente la fonética aquí en el mensaje
-            full_query = f"{prompt}. Por favor, incluye la fonética IPA entre corchetes [ ]."
+            # Instrucción directa en el mensaje
+            prompt_final = f"Actúa como tutor de francés académico. Responde a: '{user_input}'. Incluye siempre la fonética IPA entre corchetes [ ]."
             
-            response = model.generate_content(full_query)
-            st.write("---")
-            st.write(response.text)
+            response = model.generate_content(prompt_final)
+            
+            st.markdown("---")
+            st.markdown(response.text)
+            
         except Exception as e:
-            st.error(f"Error técnico: {e}")
+            st.error(f"Error del sistema: {e}")
     else:
-        st.warning("Por favor, escribe algo primero.")
+        st.warning("Escribe algo antes de presionar el botón.")
